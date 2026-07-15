@@ -35,11 +35,15 @@ String _toCamelCase(String name) {
   // Icon sets differ in word separators (- vs _) and letter case
   // (MingCute has names like ABS_fill); normalize to lowerCamelCase.
   final parts = name.split(RegExp('[-_]')).where((p) => p.isNotEmpty).toList();
-  return parts.first.toLowerCase() +
+  final camel =
+      parts.first.toLowerCase() +
       parts
           .skip(1)
           .map((p) => p[0].toUpperCase() + p.substring(1).toLowerCase())
           .join();
+  // Dart identifiers cannot start with a digit (Bootstrap Icons has names
+  // like "1-circle"); prefix those.
+  return camel.startsWith(RegExp('[0-9]')) ? 'icon$camel' : camel;
 }
 
 String _toReadableName(String name) => name.replaceAll(RegExp('[-_]'), ' ');
@@ -77,7 +81,7 @@ Future<String?> _loadSvgDataUri(
   String name,
   List<String> svgDirs,
   String baseUrl,
-  bool includeGithubFallback,
+  String fallbackUrl,
 ) async {
   final localSvgFile = _findLocalSvgFile(name, svgDirs);
   if (localSvgFile != null) {
@@ -87,8 +91,7 @@ Future<String?> _loadSvgDataUri(
 
   final urls = <String>[
     '$baseUrl/$name.svg',
-    if (includeGithubFallback)
-      'https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/$name.svg',
+    if (fallbackUrl.isNotEmpty) '$fallbackUrl/$name.svg',
   ];
 
   for (final url in urls) {
@@ -123,7 +126,7 @@ Future<Map<String, String>> _buildSvgDataUriMap(
   List<String> names,
   List<String> svgDirs,
   String baseUrl,
-  bool includeGithubFallback,
+  String fallbackUrl,
 ) async {
   final client = HttpClient();
   client.connectionTimeout = _requestTimeout;
@@ -144,7 +147,7 @@ Future<Map<String, String>> _buildSvgDataUriMap(
             name,
             svgDirs,
             baseUrl,
-            includeGithubFallback,
+            fallbackUrl,
           );
           return (name: name, dataUri: dataUri);
         }),
@@ -174,7 +177,7 @@ const _usage =
     'Usage: dart run tool/generate_fonts.dart <path-to-css> [--inline-svg] '
     '[--svg-dir=path] [--npm-package=name] [--font-family=name] '
     '[--font-package=name] [--class-name=name] [--css-prefix=prefix] '
-    '[--docs-url=url] [--output=path]';
+    '[--docs-url=url] [--output=path] [--svg-fallback-url=url]';
 
 const _knownFlagPrefixes = <String>[
   '--svg-dir=',
@@ -185,6 +188,7 @@ const _knownFlagPrefixes = <String>[
   '--css-prefix=',
   '--docs-url=',
   '--output=',
+  '--svg-fallback-url=',
 ];
 
 Future<void> main(List<String> args) async {
@@ -228,6 +232,15 @@ Future<void> main(List<String> args) async {
     fallbackVersion,
   );
   final iconBaseUrl = 'https://unpkg.com/$npmPackage@$npmVersion/icons';
+  // Per-icon SVG URL tried when both the local dirs and the unpkg base URL
+  // miss (some sets, e.g. Codicons, only publish per-icon SVGs on GitHub).
+  final svgFallbackUrl = _flagValue(
+    args,
+    'svg-fallback-url',
+    isLucideStatic
+        ? 'https://raw.githubusercontent.com/lucide-icons/lucide/main/icons'
+        : '',
+  );
   final cssPath = args.firstWhere(
     (arg) => !arg.startsWith('--'),
     orElse: () => '',
@@ -246,14 +259,15 @@ Future<void> main(List<String> args) async {
   }
 
   final content = cssFile.readAsStringSync();
-  // :{1,2} — lucide uses ::before, MingCute :before. [^}]* tolerates extra
+  // :{1,2} — lucide uses ::before, MingCute :before. The semicolon after
+  // content is optional (Codicons omits it) and [^}]* tolerates extra
   // declarations after content (MingCute adds color:). The name group
   // excludes whitespace so multi-part descendant rules like
   // ".mgc_loading_3_fill .path1:before" are skipped — an IconData can only
   // hold a single codepoint, not stacked glyph layers.
   final pattern = RegExp(
     '\\.${RegExp.escape(cssPrefix)}'
-    r'([^:\s]+):{1,2}before\s*\{\s*content:\s*"\\([0-9a-fA-F]+)";[^}]*\}',
+    r'([^:\s]+):{1,2}before\s*\{\s*content:\s*"\\([0-9a-fA-F]+)";?[^}]*\}',
   );
   final matches = pattern.allMatches(content);
   final names = matches.map((match) => match.group(1)!).toList();
@@ -270,7 +284,7 @@ Future<void> main(List<String> args) async {
     }
   }
   final svgDataUris = inlineSvg
-      ? await _buildSvgDataUriMap(names, svgDirs, iconBaseUrl, isLucideStatic)
+      ? await _buildSvgDataUriMap(names, svgDirs, iconBaseUrl, svgFallbackUrl)
       : <String, String>{};
 
   final generatedOutput = <String>[

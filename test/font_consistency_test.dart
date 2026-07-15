@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 Set<int> _cssCodepoints() {
   final content = File('assets/mingcute.css').readAsStringSync();
   final pattern = RegExp(
-    r'\.mgc_([^:\s]+):{1,2}before\s*\{\s*content:\s*"\\([0-9a-fA-F]+)";[^}]*\}',
+    r'\.mgc_([^:\s]+):{1,2}before\s*\{\s*content:\s*"\\([0-9a-fA-F]+)";?[^}]*\}',
   );
   return pattern
       .allMatches(content)
