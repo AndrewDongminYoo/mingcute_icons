@@ -1,0 +1,150 @@
+name: Update MingCute icons
+
+# The daily schedule self-checks `npm view mingcute_icon version` against
+# pubspec.yaml and no-ops when already current. When a newer version is found,
+# the icon set is regenerated and a PR is opened. Still dispatchable on demand.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *" # daily 06:00 UTC
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Run Node-based actions on Node 24 to silence the Node 20 deprecation notice.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  update-icons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Check for a newer mingcute_icon release
+        id: check
+        run: |
+          latest="$(npm view mingcute_icon version)"
+          current="$(grep -E '^version:' pubspec.yaml | awk '{print $2}')"
+          # A package-side hotfix (e.g. 1.24.0+1) still tracks the same upstream
+          # release; strip the build number so it doesn't reopen the update PR daily.
+          current="${current%%+*}"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          if [ "$latest" = "$current" ]; then
+            echo "Already on mingcute_icon@$current; nothing to do."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "mingcute_icon@$latest available (current: $current)."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup pnpm
+        if: steps.check.outputs.changed == 'true'
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Setup Node
+        if: steps.check.outputs.changed == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Flutter
+        if: steps.check.outputs.changed == 'true'
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          cache: true
+
+      - name: Regenerate icon set
+        if: steps.check.outputs.changed == 'true'
+        env:
+          NEW_VERSION: ${{ steps.check.outputs.latest }}
+        run: |
+          flutter pub get
+          bash tool/update_icons.sh "$NEW_VERSION"
+
+      - name: Bump version and update changelog
+        if: steps.check.outputs.changed == 'true'
+        env:
+          NEW_VERSION: ${{ steps.check.outputs.latest }}
+        run: |
+          # Keep the package version in lockstep with mingcute_icon.
+          sed -i -E "s/^version: .*/version: ${NEW_VERSION}/" pubspec.yaml
+
+          # Derive added / removed icon names from the regenerated Dart file.
+          ADDED="$(git diff -- lib/mingcute_icons.dart \
+            | grep -E '^\+[[:space:]]+static const IconData' \
+            | sed -E 's/.*IconData[[:space:]]+([A-Za-z0-9]+).*/\1/' | sort -u || true)"
+          REMOVED="$(git diff -- lib/mingcute_icons.dart \
+            | grep -E '^-[[:space:]]+static const IconData' \
+            | sed -E 's/.*IconData[[:space:]]+([A-Za-z0-9]+).*/\1/' | sort -u || true)"
+          export ADDED REMOVED
+
+          python3 - "$NEW_VERSION" <<'PY'
+          import os, sys, datetime
+
+          version = sys.argv[1]
+          date = datetime.date.today().isoformat()
+          added = [n for n in os.environ.get("ADDED", "").split() if n]
+          removed = [n for n in os.environ.get("REMOVED", "").split() if n]
+
+          def names(items):
+              return ", ".join(f"`{n}`" for n in items)
+
+          lines = [f"## {version} - {date}", "", "### Added", "",
+                   f"- Updated icon set to mingcute_icon@{version}."]
+          if added:
+              lines.append(f"- New icons: {names(added)}.")
+          if removed:
+              lines += ["", "### Removed", "", f"- Removed icons: {names(removed)}."]
+          entry = "\n".join(lines) + "\n\n"
+
+          with open("CHANGELOG.md", encoding="utf-8") as f:
+              content = f.read()
+
+          header = "# Changelog\n\n"
+          if content.startswith(header):
+              content = header + entry + content[len(header):]
+          else:
+              content = entry + content
+          with open("CHANGELOG.md", "w", encoding="utf-8") as f:
+              f.write(content)
+
+          # Expose a short summary for the PR body.
+          summary = []
+          if added:
+              summary.append(f"**Added ({len(added)}):** {names(added)}")
+          if removed:
+              summary.append(f"**Removed ({len(removed)}):** {names(removed)}")
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as f:
+              f.write("PR_SUMMARY<<EOF\n" + ("\n\n".join(summary) or "No icon constants changed.") + "\nEOF\n")
+          PY
+
+      - name: Verify the package still analyzes
+        if: steps.check.outputs.changed == 'true'
+        run: flutter analyze
+
+      - name: Run tests
+        if: steps.check.outputs.changed == 'true'
+        run: flutter test
+
+      - name: Open pull request
+        if: steps.check.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7.0.11
+        with:
+          branch: chore/mingcute_icon-${{ steps.check.outputs.latest }}
+          commit-message: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.latest }}"
+          title: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.latest }}"
+          body: |
+            Automated regeneration triggered by a new mingcute_icon release.
+
+            - mingcute_icon: `${{ steps.check.outputs.current }}` → `${{ steps.check.outputs.latest }}`
+
+            ${{ env.PR_SUMMARY }}
+
+            Generated by `.github/workflows/update-icons.yml`.
+          labels: dependencies, icons
+          delete-branch: true

@@ -1,0 +1,35 @@
+name: mingcute_icons
+description: A MingCute icon library package for Flutter applications. Carefully designed icons in fill and line styles.
+version: 2.9.72
+homepage: https://www.mingcute.com
+repository: https://github.com/AndrewDongminYoo/mingcute_icons
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  import_sorter: ^4.6.0
+  merry: ^2.1.1
+  very_good_analysis: ^10.2.0
+
+scripts:
+  update-icons:
+    (description): Upgrade mingcute_icon, copy font assets, and regenerate lib/mingcute_icons.dart.
+    (scripts):
+      - bash tool/update_icons.sh
+
+flutter:
+  fonts:
+    - family: MingCute
+      fonts:
+        - asset: assets/mingcute.ttf
+
+import_sorter:
+  emojis: true

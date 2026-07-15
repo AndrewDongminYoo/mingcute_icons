@@ -1,0 +1,41 @@
+name: Tag release
+
+# When a version bump lands on main (the auto-update PR is merged, or a manual
+# release commit is pushed), create the matching vX.Y.Z git tag so that git
+# dependencies can pin to it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - pubspec.yaml
+
+permissions:
+  contents: write
+
+# Run Node-based actions on Node 24 to silence the Node 20 deprecation notice.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Create tag if missing
+        run: |
+          version="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
+          tag="v${version}"
+          # Query the remote directly: a shallow checkout cannot see existing
+          # tags, so a local rev-parse would wrongly try to re-push and fail.
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists on origin; nothing to do."
+            exit 0
+          fi
+          git tag "${tag}"
+          git push origin "${tag}"
+          echo "Created and pushed ${tag}."
