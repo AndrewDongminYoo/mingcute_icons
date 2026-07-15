@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 // 🌎 Project imports:
-import 'package:mingcute_icons/mingcute_icons.dart';
+import 'package:flutter_mingcute/flutter_mingcute.dart';
 
 void main() {
   testWidgets('Can set opacity for an Icon', (WidgetTester tester) async {

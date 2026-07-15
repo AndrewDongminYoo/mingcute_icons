@@ -1,4 +1,4 @@
-name: mingcute_icons
+name: flutter_mingcute
 description: A MingCute icon library package for Flutter applications. Carefully designed icons in fill and line styles.
 version: 2.9.72
 homepage: https://www.mingcute.com
@@ -21,7 +21,7 @@ dev_dependencies:
 
 scripts:
   update-icons:
-    (description): Upgrade mingcute_icon, copy font assets, and regenerate lib/mingcute_icons.dart.
+    (description): Upgrade mingcute_icon, copy font assets, and regenerate lib/flutter_mingcute.dart.
     (scripts):
       - bash tool/update_icons.sh
 

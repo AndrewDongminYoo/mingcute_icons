@@ -75,10 +75,10 @@ jobs:
           sed -i -E "s/^version: .*/version: ${NEW_VERSION}/" pubspec.yaml
 
           # Derive added / removed icon names from the regenerated Dart file.
-          ADDED="$(git diff -- lib/mingcute_icons.dart \
+          ADDED="$(git diff -- lib/flutter_mingcute.dart \
             | grep -E '^\+[[:space:]]+static const IconData' \
             | sed -E 's/.*IconData[[:space:]]+([A-Za-z0-9]+).*/\1/' | sort -u || true)"
-          REMOVED="$(git diff -- lib/mingcute_icons.dart \
+          REMOVED="$(git diff -- lib/flutter_mingcute.dart \
             | grep -E '^-[[:space:]]+static const IconData' \
             | sed -E 's/.*IconData[[:space:]]+([A-Za-z0-9]+).*/\1/' | sort -u || true)"
           export ADDED REMOVED

@@ -1,4 +1,4 @@
-# mingcute_icons
+# flutter_mingcute
 
 A [MingCute](https://www.mingcute.com) icon library package for Flutter applications.
 Provides 3,300+ carefully designed icons in `fill` and `line` styles as a single icon font, generated from the [mingcute_icon](https://www.npmjs.com/package/mingcute_icon) npm package.
@@ -8,7 +8,7 @@ The package version tracks the upstream `mingcute_icon` release it was generated
 ## Usage
 
 ```dart
-import 'package:mingcute_icons/mingcute_icons.dart';
+import 'package:flutter_mingcute/flutter_mingcute.dart';
 
 Icon(MingCuteIcons.home1Fill);
 Icon(MingCuteIcons.searchLine, size: 32, color: Colors.teal);

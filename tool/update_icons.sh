@@ -23,7 +23,7 @@ pnpm add "mingcute_icon@${version_spec}"
 cp node_modules/mingcute_icon/font/Mingcute.css assets/mingcute.css
 cp node_modules/mingcute_icon/font/MingCute.ttf assets/mingcute.ttf
 
-# 3. Regenerate lib/mingcute_icons.dart with inline SVG dartdoc previews.
+# 3. Regenerate lib/flutter_mingcute.dart with inline SVG dartdoc previews.
 #    MingCute ships per-icon SVGs grouped by category directory, so every
 #    category is passed as a repeatable --svg-dir flag.
 svg_dirs=()
@@ -34,14 +34,14 @@ dart run tool/generate_fonts.dart assets/mingcute.css \
 	--inline-svg \
 	--npm-package=mingcute_icon \
 	--font-family=MingCute \
-	--font-package=mingcute_icons \
+	--font-package=flutter_mingcute \
 	--class-name=MingCuteIcons \
 	--css-prefix=mgc_ \
 	--docs-url='https://github.com/Richard9394/MingCute/search?q=' \
-	--output=./lib/mingcute_icons.dart \
+	--output=./lib/flutter_mingcute.dart \
 	"${svg_dirs[@]}"
 
 # 4. Format so the committed file honours analysis_options.yaml page_width (80).
 #    The generator emits unwrapped lines; without this the diff is noisy and
 #    long-line lints trip. Keeps merry and CI regeneration byte-identical.
-dart format lib/mingcute_icons.dart
+dart format lib/flutter_mingcute.dart

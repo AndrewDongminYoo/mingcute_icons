@@ -1,8 +1,8 @@
-# mingcute_icons example
+# flutter_mingcute example
 
 ```dart
 import 'package:flutter/material.dart';
-import 'package:mingcute_icons/mingcute_icons.dart';
+import 'package:flutter_mingcute/flutter_mingcute.dart';
 
 void main() => runApp(
   const MaterialApp(

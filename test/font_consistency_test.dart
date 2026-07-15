@@ -19,9 +19,9 @@ Set<int> _cssCodepoints() {
       .toSet();
 }
 
-/// Extracts codepoints from the generated `lib/mingcute_icons.dart`.
+/// Extracts codepoints from the generated `lib/flutter_mingcute.dart`.
 Set<int> _dartCodepoints() {
-  final content = File('lib/mingcute_icons.dart').readAsStringSync();
+  final content = File('lib/flutter_mingcute.dart').readAsStringSync();
   final pattern = RegExp(r'IconData\(\s*0x([0-9A-Fa-f]+)');
   return pattern
       .allMatches(content)
