@@ -1,4 +1,5 @@
 {
+  "packageManager": "pnpm@11.13.0",
   "dependencies": {
     "mingcute_icon": "^2.9.72"
   }
