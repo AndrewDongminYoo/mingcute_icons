@@ -122,6 +122,17 @@ jobs:
               f.write("PR_SUMMARY<<EOF\n" + ("\n\n".join(summary) or "No icon constants changed.") + "\nEOF\n")
           PY
 
+      - name: Format the regenerated files
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          # The vendored CSS and the generated changelog entry land unformatted,
+          # and CI has no trunk-fmt-pre-commit hook, so run the repo's own
+          # formatter here instead. --all skips trunk's changed-file detection,
+          # which needs an upstream ref this shallow checkout lacks. Only the
+          # launcher comes from the network; .trunk/trunk.yaml pins the CLI.
+          curl https://get.trunk.io -fsSL | bash -s -- -y
+          trunk fmt --all
+
       - name: Verify the package still analyzes
         if: steps.check.outputs.changed == 'true'
         run: flutter analyze
