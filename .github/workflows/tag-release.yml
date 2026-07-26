@@ -25,6 +25,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # A tag pushed with the default GITHUB_TOKEN cannot trigger other
+          # workflows, so publish.yml would never run. Push with the
+          # RELEASE_TOKEN PAT when it is configured; fall back to the default
+          # token, where tagging still works but publishing needs a manually
+          # pushed tag.
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
 
       - name: Create tag if missing
         run: |

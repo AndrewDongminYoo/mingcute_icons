@@ -1,0 +1,20 @@
+name: Publish to pub.dev
+
+# Publishes the package when a release tag lands (tag-release.yml creates one
+# after each version bump on main). Pub.dev only accepts automated publishing
+# from runs triggered by pushing a tag that matches the pattern configured in
+# the package's admin settings, so this workflow has no other triggers.
+on:
+  push:
+    tags:
+      # Upstream versions can carry a prerelease suffix (e.g. v0.0.46-24), so
+      # match beyond the plain vX.Y.Z form.
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+jobs:
+  publish:
+    permissions:
+      id-token: write # required for the pub.dev OIDC token exchange
+    # Reusable workflow maintained by the Dart team. It installs a Flutter SDK
+    # alongside Dart, so Flutter packages publish the same way.
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
