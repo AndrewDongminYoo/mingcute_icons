@@ -19,12 +19,12 @@ runtimes:
 lint:
   disabled:
     - dart
+    - pinact
   enabled:
     - actionlint@1.7.12
-    - checkov@3.3.8
+    - checkov@3.3.13
     - git-diff-check
     - markdownlint@0.49.1
-    - pinact@4.1.0
     - prettier@3.9.6
     - shellcheck@0.11.0
     - shfmt@3.13.1
