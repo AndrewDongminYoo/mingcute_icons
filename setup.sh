@@ -10,6 +10,7 @@ readonly FLUTTER_INSTALL_DIR="${HOME}/flutter"
 readonly TRUNK_INSTALL_DIR="${HOME}/.local/bin"
 readonly FLUTTER_RELEASES_URL="https://storage.googleapis.com/flutter_infra_release/releases"
 readonly TRUNK_LAUNCHER_URL="https://trunk.io/releases/trunk"
+readonly TRUNK_LAUNCHER_SHA256="89fbdd8c7b63649eeb1479415757b898903c041e73b49b78028dbd64eca3087a"
 : "${DEBUG:=0}"
 
 if [[ ${DEBUG} == "1" ]]; then
@@ -44,7 +45,7 @@ cleanup() {
 	fi
 }
 
-for required_cmd in awk basename chmod curl dirname git grep head mkdir mktemp mv python3 rm sha256sum tar touch uname; do
+for required_cmd in awk basename chmod curl dirname git grep head mkdir mktemp mv python3 rm sha256sum tar touch uname xz; do
 	need_cmd "${required_cmd}"
 done
 
@@ -161,8 +162,9 @@ for package_name in melos merry flutterfire_cli "${EXTRA_DART_TOOL}"; do
 	"${DART_BIN}" pub global activate "${package_name}"
 done
 
-echo "Installing the latest Trunk launcher..."
+echo "Installing the reviewed Trunk launcher..."
 download "${TRUNK_LAUNCHER_URL}" "${TMP_DIR}/trunk"
+verify_sha256 "${TMP_DIR}/trunk" "${TRUNK_LAUNCHER_SHA256}"
 chmod 0755 "${TMP_DIR}/trunk"
 mkdir -p "${TRUNK_INSTALL_DIR}"
 mv -f "${TMP_DIR}/trunk" "${TRUNK_INSTALL_DIR}/trunk"
