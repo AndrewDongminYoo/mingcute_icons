@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Check for a newer mingcute_icon release
         id: check
@@ -145,6 +147,7 @@ jobs:
         if: steps.check.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ github.token }}
           branch: chore/mingcute_icon-${{ steps.check.outputs.latest }}
           commit-message: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.latest }}"
           title: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.latest }}"

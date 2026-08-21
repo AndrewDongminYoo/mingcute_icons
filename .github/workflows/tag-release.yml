@@ -26,23 +26,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # A tag pushed with the default GITHUB_TOKEN cannot trigger other
-          # workflows, so publish.yml would never run. Push with the
-          # RELEASE_TOKEN PAT when it is configured; fall back to the default
-          # token, where tagging still works but publishing needs a manually
-          # pushed tag.
-          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+          persist-credentials: false
 
       - name: Create tag if missing
+        env:
+          # Tags created with the default GITHUB_TOKEN cannot trigger other
+          # workflows. Prefer RELEASE_TOKEN when configured; otherwise the tag
+          # is created but publishing still needs a manually pushed tag.
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
         run: |
           version="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
           tag="v${version}"
-          # Query the remote directly: a shallow checkout cannot see existing
-          # tags, so a local rev-parse would wrongly try to re-push and fail.
-          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+          # Query the GitHub API directly: a shallow checkout cannot see
+          # existing tags, so a local rev-parse would wrongly try to recreate one.
+          if gh api --silent "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" >/dev/null 2>&1; then
             echo "Tag ${tag} already exists on origin; nothing to do."
             exit 0
           fi
-          git tag "${tag}"
-          git push origin "${tag}"
-          echo "Created and pushed ${tag}."
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f ref="refs/tags/${tag}" \
+            -f sha="${GITHUB_SHA}"
+          echo "Created ${tag}."
