@@ -20,7 +20,9 @@ jobs:
   update-icons:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Check for a newer mingcute_icon release
         id: check
@@ -42,17 +44,17 @@ jobs:
 
       - name: Setup pnpm
         if: steps.check.outputs.changed == 'true'
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node
         if: steps.check.outputs.changed == 'true'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
       - name: Setup Flutter
         if: steps.check.outputs.changed == 'true'
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
@@ -143,8 +145,9 @@ jobs:
 
       - name: Open pull request
         if: steps.check.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7.0.11
+        uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ github.token }}
           branch: chore/mingcute_icon-${{ steps.check.outputs.latest }}
           commit-message: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.latest }}"
           title: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.latest }}"

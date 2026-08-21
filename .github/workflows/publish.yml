@@ -20,4 +20,4 @@ jobs:
       id-token: write # required for the pub.dev OIDC token exchange
     # Reusable workflow maintained by the Dart team. It installs a Flutter SDK
     # alongside Dart, so Flutter packages publish the same way.
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@65eb853c7ba17dde3be364c3d2858773e7144260 # v1.7.2
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
