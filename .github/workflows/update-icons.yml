@@ -61,11 +61,10 @@ jobs:
             exit 0
           fi
 
-          # Advance one release at a time rather than jumping to `latest`, so no
-          # upstream version is skipped. `npm view` lists versions in semver
-          # order, so the next release is the entry after the current one.
-          versions="$(npm view mingcute_icon versions --json)"
-          if ! jq -e --arg cur "$current" 'index($cur) != null' >/dev/null <<<"$versions"; then
+          # One `npm view --json` carries both the ordered version list and the
+          # dist-tags.
+          meta="$(npm view mingcute_icon --json)"
+          if ! jq -e --arg cur "$current" '.versions | index($cur) != null' >/dev/null <<<"$meta"; then
             # Upstream unpublished the version pubspec.yaml is on, so there is no
             # position to advance from. Guessing would regenerate an older release
             # and merge a downgrade onto main, whose tag already exists, leaving
@@ -74,9 +73,29 @@ jobs:
             echo "Reconcile pubspec.yaml manually; refusing to guess the next release."
             exit 1
           fi
-          next="$(jq -r --arg cur "$current" '.[index($cur) + 1] // empty' <<<"$versions")"
+
+          # Advance one release at a time -- `npm view` lists versions in semver
+          # order, so the next release is the entry after the current one -- but
+          # never past the `latest` dist-tag. The version list alone does not say
+          # what upstream considers released: @vscode/codicons holds latest at
+          # 0.0.46-24 while publishing through 0.0.46-37 under `next`, and
+          # mirroring that train would publish prereleases pub.dev does not
+          # resolve by default.
+          next="$(jq -r --arg cur "$current" '
+            ."dist-tags".latest as $cap
+            | .versions
+            | index($cap) as $capIdx
+            | index($cur) as $i
+            | if $capIdx == null or $i >= $capIdx then empty else (.[$i + 1] // empty) end
+          ' <<<"$meta")"
           if [ -z "$next" ]; then
-            echo "Already on mingcute_icon@$current; nothing to do."
+            cap="$(jq -r '."dist-tags".latest' <<<"$meta")"
+            if [ "$current" = "$cap" ]; then
+              echo "Already on mingcute_icon@$current, upstream's latest; nothing to do."
+            else
+              echo "pubspec.yaml is on $current, at or past upstream's latest ($cap)."
+              echo "Newer versions exist but upstream has not promoted them; waiting."
+            fi
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "mingcute_icon@$next available (current: $current)."
