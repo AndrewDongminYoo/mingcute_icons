@@ -12,7 +12,14 @@ on:
     # pub.dev rate-limits `package-published` per package at 3 per 2 minutes,
     # 6 per hour and 12 per day. A faster cadence would still merge and tag
     # fine, so main would keep advancing while publish.yml alone failed.
-    - cron: "0 */4 * * *"
+    - cron: 0 */4 * * *
+
+concurrency:
+  # The queue guard reads the open-PR list, so two overlapping runs could both
+  # see an empty queue and generate the same release. Never cancel in progress:
+  # a run killed between merge and tag leaves the mirror half-advanced.
+  group: update-icons
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -28,6 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: main
           persist-credentials: false
 
       - name: Pick the next mingcute_icon release to mirror
@@ -43,7 +51,9 @@ jobs:
 
           # One update PR at a time. An open PR is the head of the queue; opening
           # the next one before it lands would release versions out of order.
-          open="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --json headRefName \
+          # --limit: `gh pr list` fetches only 30 by default, and a guard that misses
+          # the queue head is worse than no guard.
+          open="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName \
             --jq '[.[] | select(.headRefName | startswith("chore/mingcute_icon-"))] | length')"
           if [ "$open" != 0 ]; then
             echo "An icon update PR is already open; waiting for it to land."
@@ -54,12 +64,18 @@ jobs:
           # Advance one release at a time rather than jumping to `latest`, so no
           # upstream version is skipped. `npm view` lists versions in semver
           # order, so the next release is the entry after the current one.
-          # A `current` that upstream unpublished has no position to advance
-          # from; fall back to latest instead of stalling the mirror forever.
-          next="$(npm view mingcute_icon versions --json \
-            | jq -r --arg cur "$current" \
-              'index($cur) as $i | if $i == null then .[-1] else (.[$i + 1] // empty) end')"
-          if [ -z "$next" ] || [ "$next" = "$current" ]; then
+          versions="$(npm view mingcute_icon versions --json)"
+          if ! jq -e --arg cur "$current" 'index($cur) != null' >/dev/null <<<"$versions"; then
+            # Upstream unpublished the version pubspec.yaml is on, so there is no
+            # position to advance from. Guessing would regenerate an older release
+            # and merge a downgrade onto main, whose tag already exists, leaving
+            # nothing publishable. Fail loudly so a maintainer reconciles instead.
+            echo "pubspec.yaml is on $current, which mingcute_icon no longer publishes."
+            echo "Reconcile pubspec.yaml manually; refusing to guess the next release."
+            exit 1
+          fi
+          next="$(jq -r --arg cur "$current" '.[index($cur) + 1] // empty' <<<"$versions")"
+          if [ -z "$next" ]; then
             echo "Already on mingcute_icon@$current; nothing to do."
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -174,6 +190,7 @@ jobs:
         if: steps.check.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
+          base: main
           token: ${{ secrets.RELEASE_TOKEN || github.token }}
           branch: chore/mingcute_icon-${{ steps.check.outputs.next }}
           commit-message: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.next }}"
@@ -198,6 +215,7 @@ jobs:
           # the PR is left open for a manual merge, which is the current flow.
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           PR: ${{ steps.pr.outputs.pull-request-number }}
+          PR_SHA: ${{ steps.pr.outputs.pull-request-head-sha }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "RELEASE_TOKEN is not configured; leaving PR #${PR} for a manual merge."
@@ -206,4 +224,7 @@ jobs:
           # A plain merge, not --auto: this repo has no pull_request-triggered
           # workflow, so auto-merge would have no check to wait for. The steps
           # above are the gate. Add --auto once PR-time CI exists.
-          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch
+          # --match-head-commit: the tests above vouch for this SHA only, and the
+          # merge releases immediately, so reject a head that moved since.
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch \
+            --match-head-commit "$PR_SHA"
