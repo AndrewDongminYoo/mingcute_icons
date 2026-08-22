@@ -8,7 +8,11 @@ name: Update MingCute icons
 on:
   workflow_dispatch:
   schedule:
-    - cron: 0 6 * * * # daily 06:00 UTC
+    # Every 4 hours -- 6 runs a day. Each merged PR publishes one version, and
+    # pub.dev rate-limits `package-published` per package at 3 per 2 minutes,
+    # 6 per hour and 12 per day. A faster cadence would still merge and tag
+    # fine, so main would keep advancing while publish.yml alone failed.
+    - cron: "0 */4 * * *"
 
 permissions:
   contents: write
