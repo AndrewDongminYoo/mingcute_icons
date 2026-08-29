@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# cspell:words tlsv unmatch
+
 readonly PROJECT_BOOTSTRAP="flutter"
 readonly INSTALL_FIREBASE_TOOLS="0"
 readonly EXTRA_DART_TOOL=""
