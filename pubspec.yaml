@@ -16,8 +16,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   import_sorter: ^4.6.0
-  merry: ^2.1.1
-  very_good_analysis: ^10.2.0
+  merry: ^2.3.0
+  very_good_analysis: ^10.3.0
 
 scripts:
   update-icons:
