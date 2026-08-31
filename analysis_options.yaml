@@ -7,6 +7,8 @@ analyzer:
     directives_ordering: ignore
     lines_longer_than_80_chars: ignore
     public_member_api_docs: ignore
+  exclude:
+    - build/**
 
 formatter:
   page_width: 80
