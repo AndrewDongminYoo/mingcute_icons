@@ -30,9 +30,6 @@ lint:
     - shfmt@3.13.1
     - trufflehog@3.95.9
     - yamllint@1.38.0
-  ignore:
-    - linters: [pinact]
-      paths: [.github/workflows/publish.yml] # pub.dev reads the reusable workflow ref; keep @v1 unpinned
 actions:
   disabled:
     - trunk-announce
