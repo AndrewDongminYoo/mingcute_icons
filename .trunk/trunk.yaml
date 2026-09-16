@@ -22,7 +22,7 @@ lint:
   enabled:
     - actionlint@1.7.12
     - pinact@4.1.1
-    - checkov@3.3.13
+    - checkov@3.3.17
     - git-diff-check
     - markdownlint@0.49.1
     - prettier@3.9.6
