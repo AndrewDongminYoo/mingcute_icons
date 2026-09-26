@@ -1,6 +1,6 @@
 name: Update MingCute icons
 
-# The daily schedule compares pubspec.yaml against the mingcute_icon release
+# The 4-hourly schedule compares pubspec.yaml against the mingcute_icon release
 # list and no-ops when already current. When upstream is ahead, the icon set is
 # regenerated for the *next* release only -- one PR per upstream version, so the
 # published Dart versions stay 1:1 with mingcute_icon -- and the following
@@ -45,7 +45,8 @@ jobs:
         run: |
           current="$(grep -E '^version:' pubspec.yaml | awk '{print $2}')"
           # A package-side hotfix (e.g. 1.24.0+1) still tracks the same upstream
-          # release; strip the build number so it doesn't reopen the update PR daily.
+          # release; strip the build number so it doesn't reopen the update PR
+          # on every scheduled run.
           current="${current%%+*}"
           echo "current=$current" >> "$GITHUB_OUTPUT"
 

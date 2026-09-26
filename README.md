@@ -24,7 +24,7 @@ bash tool/update_icons.sh          # latest mingcute_icon release
 bash tool/update_icons.sh 2.9.72   # pin a specific version
 ```
 
-A daily GitHub Actions workflow (`.github/workflows/update-icons.yml`) regenerates the icon set and opens a PR when a new upstream release is published.
+A four-hourly GitHub Actions workflow (`.github/workflows/update-icons.yml`) regenerates the icon set and opens a PR when a new upstream release is published.
 
 ## License
 
