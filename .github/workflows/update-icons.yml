@@ -22,6 +22,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  # actions: read lets the merge step read the update PR's ci.yml run.
+  actions: read
   contents: write
   pull-requests: write
 
@@ -234,17 +236,57 @@ jobs:
           # land on main untagged and never reach pub.dev. Without the secret
           # the PR is left open for a manual merge, which is the current flow.
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          # Reads the ci.yml run; the PAT is only trusted to merge.
+          CI_TOKEN: ${{ github.token }}
           PR: ${{ steps.pr.outputs.pull-request-number }}
           PR_SHA: ${{ steps.pr.outputs.pull-request-head-sha }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
+            # A PR opened with github.token never starts ci.yml either, so
+            # there is nothing to wait for on this path.
             echo "RELEASE_TOKEN is not configured; leaving PR #${PR} for a manual merge."
             exit 0
           fi
-          # A plain merge, not --auto: this repo has no pull_request-triggered
-          # workflow, so auto-merge would have no check to wait for. The steps
-          # above are the gate. Add --auto once PR-time CI exists.
-          # --match-head-commit: the tests above vouch for this SHA only, and the
-          # merge releases immediately, so reject a head that moved since.
+
+          # Wait for ci.yml on this exact head before merging. Not --auto: the
+          # repo has auto-merge disabled and main unprotected, so --auto has no
+          # required check to wait on. Anything but success leaves the PR open
+          # and fails this run: the queue guard then holds every later release,
+          # so a silent exit would stall the mirror with nothing turning red.
+          # Keyed on the workflow file, not the job name, which differs across
+          # the icon-port siblings. The timeouts are seconds and overridable
+          # for tests; ci.yml itself times out after 15 minutes.
+          start_deadline=$((SECONDS + ${CI_START_TIMEOUT:-300}))
+          done_deadline=$((SECONDS + ${CI_DONE_TIMEOUT:-1200}))
+          # Once a run has been seen, an empty poll is a transient API failure,
+          # so only the completion deadline applies from then on.
+          seen=""
+          while :; do
+            run="$(GH_TOKEN="$CI_TOKEN" gh api \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$PR_SHA&event=pull_request&per_page=1" \
+              --jq '.workflow_runs[0] // empty | "\(.status) \(.conclusion)"')" || run=""
+            if [ -n "$run" ]; then
+              seen=1
+              read -r status conclusion <<<"$run"
+              [ "$status" = completed ] && break
+            fi
+            if [ -n "$seen" ]; then
+              if [ "$SECONDS" -ge "$done_deadline" ]; then
+                echo "::error::CI for ${PR_SHA} did not finish in time; leaving PR #${PR} open."
+                exit 1
+              fi
+            elif [ "$SECONDS" -ge "$start_deadline" ]; then
+              echo "::error::No CI run started for ${PR_SHA}; leaving PR #${PR} open."
+              exit 1
+            fi
+            sleep "${CI_POLL_INTERVAL:-30}"
+          done
+          if [ "$conclusion" != success ]; then
+            echo "::error::CI for ${PR_SHA} concluded '${conclusion}'; leaving PR #${PR} open."
+            exit 1
+          fi
+
+          # --match-head-commit: CI vouches for this SHA only, and the merge
+          # releases immediately, so reject a head that moved since.
           gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch \
             --match-head-commit "$PR_SHA"
