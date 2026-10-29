@@ -1,6 +1,10 @@
 {
-  "packageManager": "pnpm@11.17.0",
+  "packageManager": "pnpm@12.16.1",
   "dependencies": {
-    "mingcute_icon": "^2.9.72"
+    "@mingcute/font": "3.0.2",
+    "@mingcute/svg": "3.0.2"
+  },
+  "devDependencies": {
+    "wawoff2": "2.0.1"
   }
 }

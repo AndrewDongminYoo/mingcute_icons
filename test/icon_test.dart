@@ -1,8 +1,12 @@
 // Tests adapted from https://github.com/fluttercommunity/font_awesome_flutter/blob/master/test/fa_icon_test.dart
 // Copyright 2014 The Flutter Authors. All rights reserved.
 
+// 🎯 Dart imports:
+import 'dart:ui' show PictureRecorder;
+
 // 🐦 Flutter imports:
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // 📦 Package imports:
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +15,47 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_mingcute/flutter_mingcute.dart';
 
 void main() {
+  testWidgets('Converted font styles render distinct nonempty glyphs', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final pixels = <List<int>>[];
+      for (final entry in {
+        MingCuteIcons.home1Fill: 'assets/mingcute.ttf',
+        MingCuteIcons.home1Line: 'assets/mingcute_line.ttf',
+      }.entries) {
+        final icon = entry.key;
+        final loader = FontLoader(
+          'packages/${icon.fontPackage}/${icon.fontFamily}',
+        )..addFont(rootBundle.load(entry.value));
+        await loader.load();
+        final painter = TextPainter(
+          text: TextSpan(
+            text: String.fromCharCode(icon.codePoint),
+            style: TextStyle(
+              fontFamily: icon.fontFamily,
+              package: icon.fontPackage,
+              fontSize: 48,
+              color: Colors.black,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        final recorder = PictureRecorder();
+        painter.paint(Canvas(recorder), Offset.zero);
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(64, 64);
+        final bytes = (await image.toByteData())!.buffer.asUint8List();
+        expect(bytes.where((value) => value != 0), isNotEmpty);
+        pixels.add(bytes.toList());
+        image.dispose();
+        picture.dispose();
+        painter.dispose();
+      }
+      expect(pixels[0], isNot(orderedEquals(pixels[1])));
+    });
+  });
+
   testWidgets('Can set opacity for an Icon', (WidgetTester tester) async {
     await tester.pumpWidget(
       const Directionality(

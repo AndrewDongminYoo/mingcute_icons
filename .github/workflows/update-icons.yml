@@ -1,9 +1,9 @@
 name: Update MingCute icons
 
-# The 4-hourly schedule compares pubspec.yaml against the mingcute_icon release
+# The 4-hourly schedule compares pubspec.yaml against the @mingcute/font release
 # list and no-ops when already current. When upstream is ahead, the icon set is
 # regenerated for the *next* release only -- one PR per upstream version, so the
-# published Dart versions stay 1:1 with mingcute_icon -- and the following
+# published Dart versions stay 1:1 with @mingcute/font -- and the following
 # release waits until that PR lands. Still dispatchable on demand.
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
           ref: main
           persist-credentials: false
 
-      - name: Pick the next mingcute_icon release to mirror
+      - name: Pick the next @mingcute/font release to mirror
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,7 +57,7 @@ jobs:
           # --limit: `gh pr list` fetches only 30 by default, and a guard that misses
           # the queue head is worse than no guard.
           open="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 100 --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("chore/mingcute_icon-"))] | length')"
+            --jq '[.[] | select(.headRefName | test("^chore/(mingcute-|mingcute_icon-)"))] | length')"
           if [ "$open" != 0 ]; then
             echo "An icon update PR is already open; waiting for it to land."
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -66,13 +66,13 @@ jobs:
 
           # One `npm view --json` carries both the ordered version list and the
           # dist-tags.
-          meta="$(npm view mingcute_icon --json)"
+          meta="$(npm view @mingcute/font --json)"
           if ! jq -e --arg cur "$current" '.versions | index($cur) != null' >/dev/null <<<"$meta"; then
             # Upstream unpublished the version pubspec.yaml is on, so there is no
             # position to advance from. Guessing would regenerate an older release
             # and merge a downgrade onto main, whose tag already exists, leaving
             # nothing publishable. Fail loudly so a maintainer reconciles instead.
-            echo "pubspec.yaml is on $current, which mingcute_icon no longer publishes."
+            echo "pubspec.yaml is on $current, which @mingcute/font no longer publishes."
             echo "Reconcile pubspec.yaml manually; refusing to guess the next release."
             exit 1
           fi
@@ -94,14 +94,14 @@ jobs:
           if [ -z "$next" ]; then
             cap="$(jq -r '."dist-tags".latest' <<<"$meta")"
             if [ "$current" = "$cap" ]; then
-              echo "Already on mingcute_icon@$current, upstream's latest; nothing to do."
+              echo "Already on @mingcute/font@$current, upstream's latest; nothing to do."
             else
               echo "pubspec.yaml is on $current, at or past upstream's latest ($cap)."
               echo "Newer versions exist but upstream has not promoted them; waiting."
             fi
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "mingcute_icon@$next available (current: $current)."
+            echo "@mingcute/font@$next available (current: $current)."
             echo "next=$next" >> "$GITHUB_OUTPUT"
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
@@ -136,7 +136,7 @@ jobs:
         env:
           NEW_VERSION: ${{ steps.check.outputs.next }}
         run: |
-          # Keep the package version in lockstep with mingcute_icon.
+          # Keep the package version in lockstep with @mingcute/font.
           sed -i -E "s/^version: .*/version: ${NEW_VERSION}/" pubspec.yaml
 
           # Derive added / removed icon names from the regenerated Dart file.
@@ -160,7 +160,7 @@ jobs:
               return ", ".join(f"`{n}`" for n in items)
 
           lines = [f"## {version} - {date}", "", "### Added", "",
-                   f"- Updated icon set to mingcute_icon@{version}."]
+                   f"- Updated icon set to @mingcute/font@{version} and @mingcute/svg@{version}."]
           if added:
               lines.append(f"- New icons: {names(added)}.")
           if removed:
@@ -193,11 +193,11 @@ jobs:
         run: |
           # The vendored CSS and the generated changelog entry land unformatted,
           # and CI has no trunk-fmt-pre-commit hook, so run the repo's own
-          # formatter here instead. --all skips trunk's changed-file detection,
-          # which needs an upstream ref this shallow checkout lacks. Only the
-          # launcher comes from the network; .trunk/trunk.yaml pins the CLI.
+          # formatter here instead. Explicit paths work with shallow checkouts.
+          # Only the launcher comes from the network; .trunk/trunk.yaml pins the CLI.
           curl https://get.trunk.io -fsSL | bash -s -- -y
-          trunk fmt --all
+          trunk fmt --monitor=false assets/mingcute.css CHANGELOG.md package.json pnpm-lock.yaml pubspec.yaml lib/flutter_mingcute.dart
+          trunk daemon shutdown
 
       - name: Verify the package still analyzes
         if: steps.check.outputs.changed == 'true'
@@ -214,13 +214,13 @@ jobs:
         with:
           base: main
           token: ${{ secrets.RELEASE_TOKEN || github.token }}
-          branch: chore/mingcute_icon-${{ steps.check.outputs.next }}
-          commit-message: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.next }}"
-          title: "feat(icons): update icon set to mingcute_icon@${{ steps.check.outputs.next }}"
+          branch: chore/mingcute-${{ steps.check.outputs.next }}
+          commit-message: "feat(icons): update icon set to @mingcute/font@${{ steps.check.outputs.next }}"
+          title: "feat(icons): update icon set to @mingcute/font@${{ steps.check.outputs.next }}"
           body: |
-            Automated regeneration triggered by a new mingcute_icon release.
+            Automated regeneration triggered by a new @mingcute/font release.
 
-            - mingcute_icon: `${{ steps.check.outputs.current }}` → `${{ steps.check.outputs.next }}`
+            - @mingcute/font and @mingcute/svg: `${{ steps.check.outputs.current }}` → `${{ steps.check.outputs.next }}`
 
             ${{ env.PR_SUMMARY }}
 

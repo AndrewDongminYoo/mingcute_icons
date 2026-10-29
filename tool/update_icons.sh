@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
-# Upgrade the mingcute_icon dependency and regenerate the Flutter icon set.
+# Upgrade the @mingcute dependencies and regenerate the Flutter icon set.
 #
 # Shared by the `merry update-icons` developer script and the
 # `.github/workflows/update-icons.yml` automation so the regeneration steps
 # live in exactly one place.
 #
 # Usage:
-#   tool/update_icons.sh            # upgrade to the latest mingcute_icon release
-#   tool/update_icons.sh 2.9.72     # pin a specific mingcute_icon version
+#   tool/update_icons.sh            # upgrade to the latest @mingcute/font release
+#   tool/update_icons.sh 3.0.2      # pin matching font and SVG versions
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -16,30 +16,28 @@ cd "${ROOT}"
 
 version_spec="${1:-latest}"
 
-# 1. Upgrade the mingcute_icon npm dependency.
-pnpm add "mingcute_icon@${version_spec}"
+# 1. Resolve one upstream version for both packages.
+version="$(pnpm view "@mingcute/font@${version_spec}" version)"
+pnpm add --save-exact "@mingcute/font@${version}" "@mingcute/svg@${version}"
 
-# 2. Copy the generated font assets out of node_modules.
-cp node_modules/mingcute_icon/font/Mingcute.css assets/mingcute.css
-cp node_modules/mingcute_icon/font/MingCute.ttf assets/mingcute.ttf
+# 2. Upstream ships WOFF2 only. Flutter's native engines need SFNT fonts.
+cat node_modules/@mingcute/font/dist/css/core-filled.min.css \
+	node_modules/@mingcute/font/dist/css/core-regular.min.css >assets/mingcute.css
+pnpm exec woff2_decompress.js node_modules/@mingcute/font/dist/fonts/core-filled.woff2 assets/mingcute.ttf
+pnpm exec woff2_decompress.js node_modules/@mingcute/font/dist/fonts/core-regular.woff2 assets/mingcute_line.ttf
 
 # 3. Regenerate lib/flutter_mingcute.dart with inline SVG dartdoc previews.
-#    MingCute ships per-icon SVGs grouped by category directory, so every
-#    category is passed as a repeatable --svg-dir flag.
-svg_dirs=()
-for dir in node_modules/mingcute_icon/svg/*/; do
-	svg_dirs+=("--svg-dir=${dir%/}")
-done
+#    Each style has its own SVG directory and font family.
 dart run tool/generate_fonts.dart assets/mingcute.css \
 	--inline-svg \
-	--npm-package=mingcute_icon \
+	--npm-package=@mingcute/svg \
 	--font-family=MingCute \
 	--font-package=flutter_mingcute \
 	--class-name=MingCuteIcons \
-	--css-prefix=mgc_ \
-	--docs-url='https://github.com/Richard9394/MingCute/search?q=' \
+	--css-prefix=mgc- \
+	--docs-url='https://github.com/mingcute-design/mingcute-icons/search?q=' \
 	--output=./lib/flutter_mingcute.dart \
-	"${svg_dirs[@]}"
+	--svg-dir=node_modules/@mingcute/svg
 
 # 4. Format so the committed file honours analysis_options.yaml page_width (80).
 #    The generator emits unwrapped lines; without this the diff is noisy and
