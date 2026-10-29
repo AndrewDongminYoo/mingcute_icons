@@ -1,12 +1,12 @@
 name: flutter_mingcute
 description: A MingCute icon library package for Flutter applications. Carefully designed icons in fill and line styles.
-version: 3.0.2
+version: 3.0.2+1
 homepage: https://www.mingcute.com
 repository: https://github.com/AndrewDongminYoo/mingcute_icons
 
 environment:
   sdk: ^3.13.7
-  flutter: ^3.47.8
+  flutter: ">=3.47.8"
 
 dependencies:
   flutter:
