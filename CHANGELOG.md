@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.2+1 - 2026-10-30
+
+### Fixed
+
+- Excluded internal plans and specs from the published package.
+- Removed the Flutter SDK upper bound to allow automated publication.
+
 ## 3.0.2 - 2026-10-29
 
 ### Changed
