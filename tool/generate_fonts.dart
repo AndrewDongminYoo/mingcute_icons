@@ -48,6 +48,31 @@ String _toCamelCase(String name) {
 
 String _toReadableName(String name) => name.replaceAll(RegExp('[-_]'), ' ');
 
+String _mingCuteName(String name) {
+  final legacy = name
+      .replaceFirst(RegExp(r'-core-filled$'), '_fill')
+      .replaceFirst(RegExp(r'-core-regular$'), '_line');
+  // Preserve the existing Flutter API across upstream spelling changes.
+  const aliases = {
+    'barcode-sca': 'barcode-scan',
+    'computer-camer': 'computer-camera',
+    'docment': 'document',
+    'rada': 'radar',
+    'chinese-knot': 'chines-knot',
+  };
+  for (final entry in aliases.entries) {
+    if (legacy.startsWith('${entry.key}_')) {
+      return legacy.replaceFirst(entry.key, entry.value);
+    }
+  }
+  return legacy;
+}
+
+String _svgPath(String name) {
+  final style = RegExp(r'^(.*)-(core-filled|core-regular)$').firstMatch(name);
+  return style == null ? name : '${style.group(2)}/${style.group(1)}';
+}
+
 String _normalizeDirPath(String path) {
   if (path.endsWith('/')) {
     return path.substring(0, path.length - 1);
@@ -60,7 +85,7 @@ File? _findLocalSvgFile(String name, List<String> svgDirs) {
     final normalizedDir = _normalizeDirPath(dir);
     // Some sets mix letter case between CSS names and SVG filenames
     // (MingCute: .mgc_TV_tower_fill vs tv_tower_fill.svg).
-    for (final candidate in {name, name.toLowerCase()}) {
+    for (final candidate in {name, name.toLowerCase(), _svgPath(name)}) {
       final file = File('$normalizedDir/$candidate.svg');
       if (file.existsSync()) {
         return file;
@@ -90,7 +115,7 @@ Future<String?> _loadSvgDataUri(
   }
 
   final urls = <String>[
-    '$baseUrl/$name.svg',
+    '$baseUrl/${_svgPath(name)}.svg',
     if (fallbackUrl.isNotEmpty) '$fallbackUrl/$name.svg',
   ];
 
@@ -214,6 +239,7 @@ Future<void> main(List<String> args) async {
 
   final npmPackage = _flagValue(args, 'npm-package', 'lucide-static');
   final isLucideStatic = npmPackage == 'lucide-static';
+  final isMingCute = npmPackage == '@mingcute/svg';
   final fontFamily = _flagValue(args, 'font-family', 'Lucide');
   final fontPackage = _flagValue(args, 'font-package', 'lucide_icons');
   final className = _flagValue(args, 'class-name', 'LucideIcons');
@@ -231,7 +257,8 @@ Future<void> main(List<String> args) async {
     './node_modules/$npmPackage/package.json',
     fallbackVersion,
   );
-  final iconBaseUrl = 'https://unpkg.com/$npmPackage@$npmVersion/icons';
+  final iconBaseUrl =
+      'https://unpkg.com/$npmPackage@$npmVersion${isMingCute ? '' : '/icons'}';
   // Per-icon SVG URL tried when both the local dirs and the unpkg base URL
   // miss (some sets, e.g. Codicons, only publish per-icon SVGs on GitHub).
   final svgFallbackUrl = _flagValue(
@@ -261,15 +288,20 @@ Future<void> main(List<String> args) async {
   final content = cssFile.readAsStringSync();
   // :{1,2} — lucide uses ::before, MingCute :before. The semicolon after
   // content is optional (Codicons omits it) and [^}]* tolerates extra
-  // declarations after content (MingCute adds color:). The name group
+  // declarations around content (scoped MingCute puts font-family first).
+  // The name group
   // excludes whitespace so multi-part descendant rules like
   // ".mgc_loading_3_fill .path1:before" are skipped — an IconData can only
   // hold a single codepoint, not stacked glyph layers.
   final pattern = RegExp(
     '\\.${RegExp.escape(cssPrefix)}'
-    r'([^:\s]+):{1,2}before\s*\{\s*content:\s*"\\([0-9a-fA-F]+)";?[^}]*\}',
+    r'([^:\s]+):{1,2}before\s*\{[^}]*?\bcontent:\s*"\\([0-9a-fA-F]+)";?[^}]*\}',
   );
   final matches = pattern.allMatches(content);
+  if (matches.isEmpty) {
+    stderr.writeln('No icon codepoints found in $cssPath');
+    exit(1);
+  }
   final names = matches.map((match) => match.group(1)!).toList();
   if (inlineSvg) {
     final existingSvgDirs = svgDirs
@@ -296,26 +328,33 @@ Future<void> main(List<String> args) async {
 
   final seenNames = <String>{};
   for (final match in matches) {
-    final name = match.group(1)!;
+    final sourceName = match.group(1)!;
+    final name = isMingCute ? _mingCuteName(sourceName) : sourceName;
     final camelName = _toCamelCase(name);
     if (!seenNames.add(camelName)) continue;
 
     final hex = match.group(2)!.toUpperCase();
     final readableName = _toReadableName(name);
+    final iconFontFamily = isMingCute
+        ? RegExp(r'font-family:\s*"([^"]+)"')
+                  .firstMatch(match.group(0)!)
+                  ?.group(1) ??
+              fontFamily
+        : fontFamily;
 
-    final inlinePreview = svgDataUris[name];
+    final inlinePreview = svgDataUris[sourceName];
     if (inlinePreview != null) {
       generatedOutput.add(
-        '\n  /// [![]($inlinePreview)]($docsUrl$name)\n',
+        '\n  /// [![]($inlinePreview)]($docsUrl$sourceName)\n',
       );
     } else {
       generatedOutput.add(
-        '\n  /// [![]($iconBaseUrl/$name.svg)]($docsUrl$name)\n',
+        '\n  /// [![]($iconBaseUrl/${_svgPath(sourceName)}.svg)]($docsUrl$sourceName)\n',
       );
     }
     generatedOutput.add('  /// $fontFamily icon named "$readableName".\n');
     generatedOutput.add(
-      "  static const IconData $camelName = IconData(0x$hex, fontFamily: '$fontFamily', fontPackage: '$fontPackage');\n",
+      "  static const IconData $camelName = IconData(0x$hex, fontFamily: '$iconFontFamily', fontPackage: '$fontPackage');\n",
     );
   }
 

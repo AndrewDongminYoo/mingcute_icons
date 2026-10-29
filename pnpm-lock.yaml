@@ -166,16 +166,40 @@ importers:
 
   .:
     dependencies:
-      mingcute_icon:
-        specifier: ^2.9.72
-        version: 2.9.72
+      '@mingcute/font':
+        specifier: 3.0.2
+        version: 3.0.2
+      '@mingcute/svg':
+        specifier: 3.0.2
+        version: 3.0.2
+    devDependencies:
+      wawoff2:
+        specifier: 2.0.1
+        version: 2.0.1
 
 packages:
 
-  mingcute_icon@2.9.72:
-    resolution: {integrity: sha512-pOw6b1tzQ1JXJP7XefmGhK3nh6GHRaQzi6YjcIu5VfAfr3lN70C6Hc9tC1v/+aNRL9RvbDMaciP18q71HklQgQ==}
-    deprecated: This package has moved to @mingcute/svg and @mingcute/font. Please install @mingcute/svg and @mingcute/font for the latest updates and continued support.
+  '@mingcute/font@3.0.2':
+    resolution: {integrity: sha512-6RDSmZE0Rq5PyoeTebAgygSerRyw6A/wi0x/JIcP5h2ic8Bv+gCxw1HotHWIBIoMb2PgcAM2htumMLqn7MaiOA==}
+
+  '@mingcute/svg@3.0.2':
+    resolution: {integrity: sha512-M9l+tNgXibeAJ/QMjmnRlHY/G5T0YgEu+ieM0tRfZ6UAHo7Qr40sVdUM8KXoikB2B/NEnyf5lSAkpiwBx497IQ==}
+
+  argparse@2.0.1:
+    resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
+
+  wawoff2@2.0.1:
+    resolution: {integrity: sha512-r0CEmvpH63r4T15ebFqeOjGqU4+EgTx4I510NtK35EMciSdcTxCw3Byy3JnBonz7iyIFZ0AbVo0bbFpEVuhCYA==}
+    hasBin: true
 
 snapshots:
 
-  mingcute_icon@2.9.72: {}
+  '@mingcute/font@3.0.2': {}
+
+  '@mingcute/svg@3.0.2': {}
+
+  argparse@2.0.1: {}
+
+  wawoff2@2.0.1:
+    dependencies:
+      argparse: 2.0.1
