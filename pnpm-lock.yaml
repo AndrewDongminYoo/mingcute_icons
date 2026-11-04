@@ -167,11 +167,11 @@ importers:
   .:
     dependencies:
       '@mingcute/font':
-        specifier: 3.0.2
-        version: 3.0.2
+        specifier: 3.1.0
+        version: 3.1.0
       '@mingcute/svg':
-        specifier: 3.0.2
-        version: 3.0.2
+        specifier: 3.1.0
+        version: 3.1.0
     devDependencies:
       wawoff2:
         specifier: 2.0.1
@@ -179,11 +179,11 @@ importers:
 
 packages:
 
-  '@mingcute/font@3.0.2':
-    resolution: {integrity: sha512-6RDSmZE0Rq5PyoeTebAgygSerRyw6A/wi0x/JIcP5h2ic8Bv+gCxw1HotHWIBIoMb2PgcAM2htumMLqn7MaiOA==}
+  '@mingcute/font@3.1.0':
+    resolution: {integrity: sha512-5lfyhBGUVk05TRv3/0WYPt52B1j+oB20038+at6soYQS0ekK0AFkzDwVW6FW5Oc+MPmDOq1WhO6M/kZRspdL/g==}
 
-  '@mingcute/svg@3.0.2':
-    resolution: {integrity: sha512-M9l+tNgXibeAJ/QMjmnRlHY/G5T0YgEu+ieM0tRfZ6UAHo7Qr40sVdUM8KXoikB2B/NEnyf5lSAkpiwBx497IQ==}
+  '@mingcute/svg@3.1.0':
+    resolution: {integrity: sha512-hyniLJBAKlxhc78l26sVEmkQTJW5Q66Oyt/shCzImbWS+0w58TnnlN4gZ3xULf8NohNiTmD3RWnWNGD4x1Hlwg==}
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
@@ -194,9 +194,9 @@ packages:
 
 snapshots:
 
-  '@mingcute/font@3.0.2': {}
+  '@mingcute/font@3.1.0': {}
 
-  '@mingcute/svg@3.0.2': {}
+  '@mingcute/svg@3.1.0': {}
 
   argparse@2.0.1: {}
 
