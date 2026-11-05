@@ -27,7 +27,7 @@ This plan records that accepted direction and the remaining delivery checks.
 8. Resolve whether the pre-existing toolchain version changes belong in the PR.
    Create concern-based commits, push the task branch, and open the PR against `main`.
 9. Observe current-head CI and hosted review within the recorded budget.
-   Finish and read back the live PR title and body before assigning `AndrewDongminYoo` at the review handoff.
+   Finish and read back the live PR title and body before assigning myself at the review handoff.
    Keep the PR open for user review.
 
 ## Verification
