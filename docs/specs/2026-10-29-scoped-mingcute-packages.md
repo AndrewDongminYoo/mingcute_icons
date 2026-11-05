@@ -27,7 +27,7 @@ The existing updater expects one TTF and category-based SVG directories, so chan
 
 ## Constraints
 
-Preserve existing unrelated workspace edits unless the operator includes them in this PR.
+Preserve existing unrelated workspace edits unless the user includes them in this PR.
 Do not introduce a Flutter runtime dependency for font conversion.
 The package version follows the coordinated upstream version.
 Changes to font family names and codepoints require using the generated constants rather than manually retained values from 2.x.

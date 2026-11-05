@@ -3,7 +3,7 @@
 ## Approved direction
 
 Adapt the Flutter icon package to the upstream scoped npm packages while retaining the existing Dart icon names.
-The implementation and its regression checks were completed in the current session before the operator requested the PR.
+The implementation and its regression checks were completed in the current session before the PR was requested.
 This plan records that accepted direction and the remaining delivery checks.
 
 ## Implementation and checks
@@ -28,7 +28,7 @@ This plan records that accepted direction and the remaining delivery checks.
    Create concern-based commits, push the task branch, and open the PR against `main`.
 9. Observe current-head CI and hosted review within the recorded budget.
    Finish and read back the live PR title and body before assigning `AndrewDongminYoo` at the review handoff.
-   Keep the PR open for operator review.
+   Keep the PR open for user review.
 
 ## Verification
 
