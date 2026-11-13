@@ -16,6 +16,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   import_sorter: ^4.6.0
+  material_ui: ^1.11.0
   merry: ^2.5.0
   very_good_analysis: ^11.0.0
 
