@@ -319,6 +319,27 @@ Future<void> main(List<String> args) async {
       ? await _buildSvgDataUriMap(names, svgDirs, iconBaseUrl, svgFallbackUrl)
       : <String, String>{};
 
+  String fontFamilyOf(RegExpMatch match) => isMingCute
+      ? RegExp(
+              r'font-family:\s*"([^"]+)"',
+            ).firstMatch(match.group(0)!)?.group(1) ??
+            fontFamily
+      : fontFamily;
+
+  // Alias selectors (Codicons: .codicon-plus shares 0xEA60 with add) have no
+  // SVG file of their own; reuse the preview of any name with the same
+  // font family and codepoint, since it renders the same glyph.
+  final previewByGlyph = <String, String>{};
+  for (final match in matches) {
+    final preview = svgDataUris[match.group(1)!];
+    if (preview != null) {
+      previewByGlyph.putIfAbsent(
+        '${fontFamilyOf(match)}:${match.group(2)!.toUpperCase()}',
+        () => preview,
+      );
+    }
+  }
+
   final generatedOutput = <String>[
     '// 🐦 Flutter imports:\n',
     "import 'package:flutter/widgets.dart';\n\n",
@@ -335,14 +356,10 @@ Future<void> main(List<String> args) async {
 
     final hex = match.group(2)!.toUpperCase();
     final readableName = _toReadableName(name);
-    final iconFontFamily = isMingCute
-        ? RegExp(r'font-family:\s*"([^"]+)"')
-                  .firstMatch(match.group(0)!)
-                  ?.group(1) ??
-              fontFamily
-        : fontFamily;
+    final iconFontFamily = fontFamilyOf(match);
 
-    final inlinePreview = svgDataUris[sourceName];
+    final inlinePreview =
+        svgDataUris[sourceName] ?? previewByGlyph['$iconFontFamily:$hex'];
     if (inlinePreview != null) {
       generatedOutput.add(
         '\n  /// [![]($inlinePreview)]($docsUrl$sourceName)\n',
